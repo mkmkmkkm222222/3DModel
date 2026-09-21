@@ -189,8 +189,13 @@ function renderAdmin() {
 }
 
 async function copyViewerLink(id) {
-  // Mengarah ke file viewer.html dengan parameter ID
-  const viewerUrl = new URL('viewer.html?id=' + id, window.location.href).href;
+  // Mengambil domain utama (misal: mkmkmkkm222222.github.io/3DModel/)
+  const currentUrl = window.location.href;
+  const baseUrl = currentUrl.substring(0, currentUrl.indexOf('/admin/'));
+  
+  // Mengarahkan ke folder viewer/ dengan parameter id
+  const viewerUrl = baseUrl + '/viewer/?id=' + id;
+  
   try {
     await navigator.clipboard.writeText(viewerUrl);
     showToast('Link model berhasil disalin!');
