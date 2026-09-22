@@ -41,7 +41,17 @@
   <div class="error-msg" id="errorMsg"></div>
 </div>
 
-<model-viewer id="viewer" camera-controls auto-rotate shadow-intensity="1" exposure="1" crossorigin="anonymous" ar></model-viewer>
+<model-viewer 
+  id="viewer" 
+  camera-controls 
+  auto-rotate 
+  shadow-intensity="1" 
+  exposure="1" 
+  crossorigin="anonymous" 
+  ar
+  ar-scale="fixed"
+  scale="0.01 0.01 0.01"
+  ar-modes="webxr scene-viewer quick-look">
 
 <script>
 const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzioVwXBW4Cyj7nmJ665Evo62EHWXluf1_oxmGCf8S48YxZF2pMsc6MJs74kbV5flkCAg/exec"; 
