@@ -113,13 +113,20 @@ function zoom(viewer, factor) {
 
 async function loadModel() {
   const urlParams = new URLSearchParams(window.location.search);
-  const targetId = urlParams.get('id');
+  let targetId = urlParams.get('id');
+
+  // Simpan ID sementara supaya refresh halaman tetap bisa memuat unit yang sama
+  try {
+    if (targetId) sessionStorage.setItem('unitId', targetId);
+    else targetId = sessionStorage.getItem('unitId');
+  } catch (e) {}
 
   if (!targetId) {
     showError("URL tidak valid. ID Unit tidak ditemukan.");
     return;
   }
 
+  // Bersihkan ?id=... dari address bar
   window.history.replaceState(null, '', window.location.pathname);
 
   try {
