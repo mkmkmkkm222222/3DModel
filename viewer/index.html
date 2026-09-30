@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>3D Viewer v.02</title>
+<title>3D Viewer v.03</title>
 <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   body, html { margin: 0; padding: 0; height: 100%; font-family: 'IBM Plex Sans', sans-serif; background: #141416; color: #ece9e4; overflow: hidden; }
-  
+
   .header {
     position: absolute; top: 0; left: 0; right: 0; padding: 15px 20px;
     background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
@@ -17,13 +17,24 @@
   .unit-info h1 { margin: 0; font-size: 18px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
   .unit-info p { margin: 4px 0 0; font-size: 13px; color: #9a978f; }
   .badge { background: #e8a33d; color: #1a1409; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
-  
+
   model-viewer { width: 100%; height: 100%; --poster-color: transparent; --progress-bar-color: #e8a33d; }
-  
+
   .loading-screen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #141416; z-index: 20; flex-direction: column; gap: 10px;}
   .spin { width: 30px; height: 30px; border: 3px solid #302f33; border-top-color: #e8a33d; border-radius: 50%; animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .error-msg { color: #d9704f; font-size: 14px; text-align: center; padding: 20px; display: none; }
+
+  .controls {
+    position: absolute; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    z-index: 10; display: none; flex-direction: column; gap: 8px;
+  }
+  .controls button {
+    width: 44px; height: 44px; border-radius: 50%; border: 1px solid #302f33;
+    background: rgba(30,30,34,0.85); color: #ece9e4; font-size: 20px; font-family: inherit;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .controls button:active { background: #e8a33d; color: #1a1409; }
 </style>
 </head>
 <body>
@@ -41,19 +52,31 @@
   <div class="error-msg" id="errorMsg"></div>
 </div>
 
-<model-viewer 
-  id="viewer" 
-  camera-controls 
-  auto-rotate 
-  shadow-intensity="1" 
-  exposure="1" 
-  crossorigin="anonymous" 
+<div class="controls" id="controls">
+  <button id="btnIn" aria-label="Zoom in">+</button>
+  <button id="btnOut" aria-label="Zoom out">−</button>
+  <button id="btnFit" aria-label="Fit ke layar">⤢</button>
+</div>
+
+<model-viewer
+  id="viewer"
+  camera-controls
+  auto-rotate
+  shadow-intensity="1"
+  exposure="1"
+  min-camera-orbit="auto auto 1%"
+  max-camera-orbit="auto auto 500%"
+  crossorigin="anonymous"
   ar
   ar-scale="fixed"
-  ar-modes="webxr scene-viewer quick-look">
+  ar-modes="webxr scene-viewer quick-look"></model-viewer>
 
 <script>
-const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzioVwXBW4Cyj7nmJ665Evo62EHWXluf1_oxmGCf8S48YxZF2pMsc6MJs74kbV5flkCAg/exec"; 
+const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzioVwXBW4Cyj7nmJ665Evo62EHWXluf1_oxmGCf8S48YxZF2pMsc6MJs74kbV5flkCAg/exec";
+
+// Seberapa penuh unit mengisi layar. 1.0 = pas satu sisi terpanjang menyentuh tepi.
+// Naikkan (mis. 1.5) untuk lebih dekat, turunkan (mis. 0.8) untuk lebih jauh.
+const FILL = 1.2;
 
 function toDirectDropboxUrl(raw) {
   let url;
@@ -68,6 +91,26 @@ function toDirectDropboxUrl(raw) {
   return url.toString();
 }
 
+function fitModel(viewer) {
+  const size = viewer.getDimensions();
+  const c = viewer.getBoundingBoxCenter();
+  const maxDim = Math.max(size.x, size.y, size.z);
+  if (!maxDim || !isFinite(maxDim)) return;
+
+  const fovDeg = viewer.getFieldOfView ? viewer.getFieldOfView() : 45;
+  const halfFov = (fovDeg * Math.PI) / 360;
+  const radius = (maxDim / 2) / Math.tan(halfFov) / FILL;
+
+  viewer.cameraTarget = `${c.x}m ${c.y}m ${c.z}m`;
+  viewer.cameraOrbit = `30deg 72deg ${radius}m`;
+  viewer.jumpCameraToGoal();
+}
+
+function zoom(viewer, factor) {
+  const o = viewer.getCameraOrbit();
+  viewer.cameraOrbit = `${o.theta}rad ${o.phi}rad ${o.radius * factor}m`;
+}
+
 async function loadModel() {
   const urlParams = new URLSearchParams(window.location.search);
   const targetId = urlParams.get('id');
@@ -77,13 +120,12 @@ async function loadModel() {
     return;
   }
 
-  // Membersihkan parameter ?id=... di address bar browser setelah ID terbaca
   window.history.replaceState(null, '', window.location.pathname);
 
   try {
     const res = await fetch(APP_SCRIPT_URL);
     const data = await res.json();
-    
+
     const unit = data.find(u => u.id === targetId);
 
     if (unit) {
@@ -91,16 +133,23 @@ async function loadModel() {
       document.getElementById('unitId').textContent = unit.id;
       document.getElementById('unitPhase').textContent = unit.phase;
       document.getElementById('header').style.display = 'flex';
-      
+
       const viewer = document.getElementById('viewer');
-      viewer.src = toDirectDropboxUrl(unit.link);
-      
+
       viewer.addEventListener('load', () => {
+        fitModel(viewer);
         document.getElementById('loading').style.display = 'none';
+        document.getElementById('controls').style.display = 'flex';
       });
       viewer.addEventListener('error', () => {
         showError("Gagal memuat model 3D. Pastikan link Dropbox publik.");
       });
+
+      document.getElementById('btnIn').onclick  = () => zoom(viewer, 0.7);
+      document.getElementById('btnOut').onclick = () => zoom(viewer, 1.4);
+      document.getElementById('btnFit').onclick = () => fitModel(viewer);
+
+      viewer.src = toDirectDropboxUrl(unit.link);
     } else {
       showError(`Unit dengan ID ${targetId} tidak ditemukan di database.`);
     }
