@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>3D Viewer v.07</title>
+<title>3D Viewer v.06 — PT. GUNINDO TRIMUKTI</title>
 <link rel="preconnect" href="https://script.google.com">
 <link rel="preconnect" href="https://script.googleusercontent.com">
 <link rel="preconnect" href="https://dl.dropboxusercontent.com">
@@ -133,21 +133,15 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzioVwXBW4Cyj7nmJ665Evo62EHWXluf1_oxmGCf8S48YxZF2pMsc6MJs74kbV5flkCAg/exec";
 
 // ---------- Pengaturan ----------
-// Seberapa penuh unit mengisi layar di mode orbit. Naikkan = lebih dekat.
 const FILL = 1.2;
-// Tinggi mata di mode jalan (meter). null = otomatis menyesuaikan ukuran unit.
 const EYE_HEIGHT = null;
-// Kecepatan jalan (meter/detik). null = otomatis menyesuaikan ukuran unit.
 const WALK_SPEED = null;
-// Kepekaan geser layar untuk menoleh
 const LOOK_SENSITIVITY = 0.0035;
-// Batas jarak jelajah dari unit (kelipatan ukuran unit)
 const MAX_ROAM = 8;
 
-// Senter (aktif di mode jalan)
-const FLASH_INTENSITY = 4;          // naikkan = lebih terang
-const FLASH_ANGLE = Math.PI / 4;    // lebar sorotan (makin besar makin lebar)
-const FLASH_SOFTNESS = 0.6;         // 0 = tepi tegas, 1 = tepi sangat lembut
+const FLASH_INTENSITY = 4;      
+const FLASH_ANGLE = Math.PI / 4;    
+const FLASH_SOFTNESS = 0.6;         
 
 const isTouch = window.matchMedia('(pointer: coarse)').matches;
 
@@ -183,7 +177,6 @@ renderer.toneMappingExposure = 1;
 stage.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-// Latar putih bersih dengan gradasi halus
 const bgCanvas = document.createElement('canvas');
 bgCanvas.width = 2; bgCanvas.height = 512;
 const bgCtx = bgCanvas.getContext('2d');
@@ -209,10 +202,10 @@ const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
 camera.rotation.order = 'YXZ';
 
 // ---------- Senter ----------
-scene.add(camera); // kamera harus ada di scene agar lampu yang menempel ikut tampil
+scene.add(camera); 
 const flashlight = new THREE.SpotLight(0xfff3e0, FLASH_INTENSITY, 0, FLASH_ANGLE, FLASH_SOFTNESS, 0);
 flashlight.position.set(0, 0, 0);
-flashlight.target.position.set(0, 0, -1); // menyorot lurus ke depan kamera
+flashlight.target.position.set(0, 0, -1); 
 camera.add(flashlight);
 camera.add(flashlight.target);
 flashlight.visible = false;
@@ -220,7 +213,7 @@ flashlight.visible = false;
 const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.enableDamping = true;
 orbit.dampingFactor = 0.08;
-orbit.maxPolarAngle = Math.PI * 0.53; // tidak turun ke bawah lantai
+orbit.maxPolarAngle = Math.PI * 0.53; // Batas sudut pandang orbit
 
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
@@ -232,8 +225,8 @@ window.addEventListener('resize', resize);
 resize();
 
 // ---------- State ----------
-let mode = 'orbit';           // 'orbit' | 'walk'
-let modelBox = null;          // Box3 model (setelah diletakkan di lantai)
+let mode = 'orbit';          
+let modelBox = null;          
 let center = new THREE.Vector3();
 let maxDim = 1;
 let eye = 1.6, speed = 2;
@@ -258,7 +251,6 @@ function fitOrbit() {
 }
 
 function startWalk() {
-  // Berdiri di depan unit, menghadap ke tengah unit
   const dist = Math.max(maxDim * 1.1, 2);
   camera.position.set(center.x, eye, modelBox.max.z + dist);
   const dir = new THREE.Vector3().subVectors(center, camera.position);
@@ -316,7 +308,6 @@ window.addEventListener('keydown', e => { keys[e.code] = true; });
 window.addEventListener('keyup',   e => { keys[e.code] = false; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 
-// Geser layar / mouse untuk menoleh (mode jalan)
 let lookPointer = null, lastX = 0, lastY = 0;
 renderer.domElement.addEventListener('pointerdown', e => {
   if (mode !== 'walk' || lookPointer !== null) return;
@@ -360,14 +351,13 @@ const joyEnd = e => {
 joy.addEventListener('pointerup', joyEnd);
 joy.addEventListener('pointercancel', joyEnd);
 
-// Tabrakan sederhana: kamera tidak boleh masuk ke dalam kotak unit
 function collide() {
   if (!modelBox) return;
   const m = Math.max(maxDim * 0.03, 0.3);
   const minX = modelBox.min.x - m, maxX = modelBox.max.x + m;
   const minZ = modelBox.min.z - m, maxZ = modelBox.max.z + m;
   const p = camera.position;
-  if (p.y > modelBox.max.y + m) return; // di atas unit, bebas lewat
+  if (p.y > modelBox.max.y + m) return; 
   if (p.x > minX && p.x < maxX && p.z > minZ && p.z < maxZ) {
     const dl = p.x - minX, dr = maxX - p.x, df = p.z - minZ, db = maxZ - p.z;
     const d = Math.min(dl, dr, df, db);
@@ -405,7 +395,6 @@ function updateWalk(dt) {
   if (keys.KeyC)  up -= 1;
   camera.position.y = Math.max(eye * 0.3, camera.position.y + up * v);
 
-  // Batas jelajah
   const off = new THREE.Vector2(camera.position.x - center.x, camera.position.z - center.z);
   const limit = maxDim * MAX_ROAM;
   if (off.length() > limit) {
@@ -429,7 +418,6 @@ function placeModel(gltf) {
   const model = gltf.scene;
   scene.add(model);
 
-  // Letakkan di lantai (y = 0) dan pusatkan di sumbu X/Z
   let box = new THREE.Box3().setFromObject(model);
   const c = box.getCenter(new THREE.Vector3());
   model.position.x -= c.x;
@@ -441,7 +429,6 @@ function placeModel(gltf) {
   const size = modelBox.getSize(new THREE.Vector3());
   modelBox.getCenter(center);
   maxDim = Math.max(size.x, size.y, size.z);
-  console.log('Dimensi model (m):', size.x, size.y, size.z);
 
   eye   = EYE_HEIGHT ?? THREE.MathUtils.clamp(maxDim * 0.15, 0.3, 1.6);
   speed = WALK_SPEED ?? THREE.MathUtils.clamp(maxDim * 0.3, 1, 8);
@@ -452,7 +439,6 @@ function placeModel(gltf) {
   orbit.minDistance = maxDim * 0.05;
   orbit.maxDistance = maxDim * MAX_ROAM;
 
-  // Lantai: piringan gelap + grid tipis agar terasa berpijak
   const groundR = maxDim * MAX_ROAM * 1.2;
   const ground = new THREE.Mesh(
     new THREE.CircleGeometry(groundR, 64),
@@ -471,12 +457,26 @@ function placeModel(gltf) {
 
 async function loadModel() {
   const urlParams = new URLSearchParams(window.location.search);
-  let targetId = urlParams.get('id');
+  let targetId = null;
+
+  // Mendukung parameter 'token' (Base64) yang dikirim dari katalog, 
+  // atau langsung 'id' untuk pengujian lama.
+  const tokenParam = urlParams.get('token');
+  const idParam = urlParams.get('id');
 
   try {
-    if (targetId) sessionStorage.setItem('unitId', targetId);
-    else targetId = sessionStorage.getItem('unitId');
-  } catch (e) {}
+    if (tokenParam) {
+      targetId = atob(tokenParam); // Decode Base64 token menjadi UNIT-XXXX
+      sessionStorage.setItem('unitId', targetId);
+    } else if (idParam) {
+      targetId = idParam;
+      sessionStorage.setItem('unitId', targetId);
+    } else {
+      targetId = sessionStorage.getItem('unitId');
+    }
+  } catch (e) {
+    console.error("Gagal mendecode token:", e);
+  }
 
   if (!targetId) {
     showError("URL tidak valid. ID Unit tidak ditemukan.");
