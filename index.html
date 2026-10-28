@@ -252,10 +252,37 @@
 
   .unit-footer {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 8px;
     border-top: 1px solid #f1f5f9;
     padding-top: 12px;
+  }
+
+  .btn-action-group {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-open {
+    background: linear-gradient(135deg, var(--blue-accent) 0%, var(--purple-accent) 100%);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 14px;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex: 1;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  }
+  .btn-open:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
   }
 
   .btn-share { 
@@ -271,7 +298,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    width: 100%;
+    flex: 1;
     justify-content: center;
   }
   .btn-share:hover { 
@@ -417,40 +444,52 @@ function renderAdmin() {
         <div class="unit-url-box" title="${u.link}">${u.link}</div>
       </div>
       <div class="unit-footer">
-        <button class="btn-share" onclick="shareUnitViewer('${u.id}', '${encodeURIComponent(u.nama_unit)}')">
-          📤 Bagikan Link Viewer 3D
-        </button>
+        <div class="btn-action-group">
+          <button class="btn-open" onclick="openViewerTab('${u.id}')">
+            🌐 Buka
+          </button>
+          <button class="btn-share" onclick="shareUnitViewer('${u.id}', '${encodeURIComponent(u.nama_unit)}')">
+            📤 Bagikan
+          </button>
+        </div>
       </div>
     `;
     container.appendChild(card);
   });
 }
 
-async function shareUnitViewer(id, encodedNamaUnit) {
-  const namaUnit = decodeURIComponent(encodedNamaUnit);
+function getViewerUrl(id) {
+  const encryptedToken = btoa(id);
   const currentUrl = window.location.href;
   const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
-  const viewerUrl = baseUrl + 'viewer/?id=' + id;
+  return baseUrl + 'viewer/?token=' + encryptedToken;
+}
+
+function openViewerTab(id) {
+  const viewerUrl = getViewerUrl(id);
+  window.open(viewerUrl, '_blank');
+}
+
+async function shareUnitViewer(id, encodedNamaUnit) {
+  const namaUnit = decodeURIComponent(encodedNamaUnit);
+  const viewerUrl = getViewerUrl(id);
   
-  // Periksa apakah browser/HP mendukung fitur Native Share
   if (navigator.share) {
     try {
       await navigator.share({
         title: 'Viewer 3D — ' + namaUnit,
-        text: 'Halo, berikut link Viewer 3D interaktif untuk unit ' + namaUnit + ' (' + id + '):',
+        text: 'Halo, berikut link Viewer 3D interaktif untuk unit ' + namaUnit + ':',
         url: viewerUrl,
       });
     } catch (err) {
-      // Jika pengguna membatalkan sharing, abaikan error
       if (err.name !== 'AbortError') {
         console.log('Sharing error:', err);
       }
     }
   } else {
-    // Fallback otomatis ke Copy ke Clipboard jika dibuka di PC/Browser lama yang tidak support
     try {
       await navigator.clipboard.writeText(viewerUrl);
-      showToast('Link viewer unit ' + id + ' berhasil disalin ke clipboard!');
+      showToast('Link viewer berhasil disalin ke clipboard!');
     } catch (err) {
       showToast('Gagal membagikan link.', true);
     }
