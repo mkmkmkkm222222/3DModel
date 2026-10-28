@@ -461,7 +461,11 @@ function renderAdmin() {
 function getViewerUrl(id) {
   const encryptedToken = btoa(id);
   const currentUrl = window.location.href;
+  
+  // Mengambil direktori dasar dari URL saat ini
   const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
+  
+  // Menambahkan folder viewer/ diakhiri dengan garis miring (/)
   return baseUrl + 'viewer/?token=' + encryptedToken;
 }
 
